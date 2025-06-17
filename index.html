@@ -175,15 +175,7 @@
   </head>
   <body>
     <div class="container">
-      <h2>🔐 Secure QR Scanner (JSONP)</h2>
-      
-      <div class="jsonp-indicator">
-        ⚡ Using JSONP for cross-origin requests - No CORS issues!
-      </div>
-      
-      <div id="config-status" class="alert">
-        <strong>API Status:</strong> <span id="config-message">Getting Ready...</span>
-      </div>
+      <h2>NEMA QR Scanner</h2>
       
       <div class="stats">
         <div class="stat-item">
@@ -387,7 +379,7 @@
           let statusText = '';
           if (item.saved) {
             statusIcon = '⚡✅';
-            statusText = 'Saved via JSONP';
+            statusText = 'Scan Saved';
           } else if (item.error) {
             statusIcon = '❌';
             statusText = `Error: ${item.error}`;
