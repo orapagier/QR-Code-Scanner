@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>QR Code Scanner</title>
+    <title>QR Code Scanner - Secure</title>
     <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
     <style>
       body {
@@ -165,10 +165,10 @@
   </head>
   <body>
     <div class="container">
-      <h2>QR Code Scanner</h2>
+      <h2>🔒 Secure QR Code Scanner</h2>
       
       <div id="config-status" class="alert">
-        <strong>Configuration Status:</strong> <span id="config-message">Checking...</span>
+        <strong>API Status:</strong> <span id="config-message">Checking connection...</span>
       </div>
       
       <div class="stats">
@@ -204,20 +204,12 @@
 
     <script>
       // ==========================================
-      // CONFIGURATION - REPLACE THESE VALUES
+      // SECURE CONFIGURATION
       // ==========================================
       const CONFIG = {
-        // Replace with your Google Sheets API key
-        GOOGLE_SHEETS_API_KEY: 'YOUR_API_KEY_HERE',
-        
-        // Replace with your Google Sheet ID (from the URL)
-        GOOGLE_SHEET_ID: 'YOUR_SHEET_ID_HERE',
-        
-        // Replace with your sheet name (usually 'Sheet1')
-        SHEET_NAME: 'Sheet1',
-        
-        // Optional: Customize the range where data will be appended
-        RANGE: 'A:B' // Columns A and B (Timestamp, QR Data)
+        // Replace with your Google Apps Script Web App URL
+        // Get this after deploying your Apps Script as a web app
+        API_ENDPOINT: 'https://script.google.com/macros/s/AKfycbzuPnmxa-R6UkfBgBF1LUc6VcEwpJbba6m0OWnFcBe4tB8-qms2k3sf4RSQqSVkIU7V/exec'
       };
       
       // ==========================================
@@ -238,19 +230,31 @@
         document.getElementById('failed-saves').textContent = stats.failedSaves;
       }
 
-      function checkConfiguration() {
+      async function checkApiConnection() {
         const configStatus = document.getElementById('config-status');
         const configMessage = document.getElementById('config-message');
         
-        if (CONFIG.GOOGLE_SHEETS_API_KEY === 'YOUR_API_KEY_HERE' || 
-            CONFIG.GOOGLE_SHEET_ID === 'YOUR_SHEET_ID_HERE') {
+        if (CONFIG.API_ENDPOINT.includes('YOUR_SCRIPT_ID')) {
           configStatus.className = 'alert error';
-          configMessage.textContent = 'Please configure your Google Sheets API credentials in the code.';
+          configMessage.textContent = 'Please configure your Google Apps Script endpoint.';
           return false;
-        } else {
-          configStatus.className = 'alert success';
-          configMessage.textContent = 'Google Sheets API configured successfully.';
-          return true;
+        }
+        
+        try {
+          const response = await fetch(CONFIG.API_ENDPOINT);
+          const data = await response.json();
+          
+          if (data.status) {
+            configStatus.className = 'alert success';
+            configMessage.textContent = '✅ Connected to secure API endpoint.';
+            return true;
+          } else {
+            throw new Error('Invalid API response');
+          }
+        } catch (error) {
+          configStatus.className = 'alert error';
+          configMessage.textContent = `❌ API connection failed: ${error.message}`;
+          return false;
         }
       }
 
@@ -266,32 +270,28 @@
         statusElement.className = 'status info';
       }
 
-      async function saveToGoogleSheets(qrData) {
-        if (!checkConfiguration()) {
-          throw new Error('Google Sheets API not configured');
-        }
-
-        const timestamp = new Date().toLocaleString();
-        const values = [[timestamp, qrData]];
-        
-        const url = `https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.GOOGLE_SHEET_ID}/values/${CONFIG.SHEET_NAME}!${CONFIG.RANGE}:append?valueInputOption=RAW&key=${CONFIG.GOOGLE_SHEETS_API_KEY}`;
-        
-        const response = await fetch(url, {
+      async function saveToSecureAPI(qrData) {
+        const response = await fetch(CONFIG.API_ENDPOINT, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            values: values
+            qrData: qrData
           })
         });
 
         if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.error?.message || `HTTP ${response.status}: Failed to save to Google Sheets`);
+          throw new Error(`HTTP ${response.status}: Network error`);
         }
 
-        return await response.json();
+        const result = await response.json();
+        
+        if (!result.success) {
+          throw new Error(result.error || 'Unknown API error');
+        }
+
+        return result;
       }
 
       function addToHistory(text, saved = false, error = null) {
@@ -322,8 +322,8 @@
           let statusIcon = '';
           let statusText = '';
           if (item.saved) {
-            statusIcon = '✅';
-            statusText = 'Saved to Google Sheets';
+            statusIcon = '🔒✅';
+            statusText = 'Securely saved';
           } else if (item.error) {
             statusIcon = '❌';
             statusText = `Error: ${item.error}`;
@@ -371,10 +371,10 @@
         stopScanner();
         
         // Show loading status
-        showLoading('Saving to Google Sheets...');
+        showLoading('Securely saving to Google Sheets...');
         
         try {
-          await saveToGoogleSheets(decodedText);
+          await saveToSecureAPI(decodedText);
           
           // Update the latest history item
           if (scanHistory.length > 0) {
@@ -385,10 +385,10 @@
           stats.successfulSaves++;
           updateStats();
           updateHistoryDisplay();
-          updateStatus('✅ Scan successful! Saved to Google Sheets.', 'success');
+          updateStatus('🔒✅ Scan successful! Securely saved to Google Sheets.', 'success');
           
         } catch (error) {
-          console.error('Failed to save to Google Sheets:', error);
+          console.error('Failed to save via secure API:', error);
           
           // Update the latest history item
           if (scanHistory.length > 0) {
@@ -399,7 +399,7 @@
           stats.failedSaves++;
           updateStats();
           updateHistoryDisplay();
-          updateStatus(`❌ Scan successful but failed to save: ${error.message}`, 'error');
+          updateStatus(`❌ Failed to save: ${error.message}`, 'error');
         }
       }
 
@@ -409,11 +409,6 @@
 
       function startScanner() {
         if (isScanning) return;
-        
-        if (!checkConfiguration()) {
-          updateStatus('Please configure Google Sheets API first', 'error');
-          return;
-        }
         
         updateStatus('Starting camera...', 'info');
         html5QrCode = new Html5Qrcode("reader");
@@ -475,8 +470,7 @@
       }
 
       // Initialize the scanner when page loads
-      window.onload = function() {
-        checkConfiguration();
+      window.onload = async function() {
         updateStats();
         
         // Check if we're in a secure context (required for camera access)
@@ -487,10 +481,11 @@
         
         document.getElementById("start-button").style.display = "block";
         
-        if (checkConfiguration()) {
-          updateStatus('Ready! Click "Start Scanner" to begin', 'info');
+        const apiConnected = await checkApiConnection();
+        if (apiConnected) {
+          updateStatus('🔒 Ready! Click "Start Scanner" to begin secure scanning', 'info');
         } else {
-          updateStatus('Please configure Google Sheets API first', 'error');
+          updateStatus('Please configure secure API endpoint first', 'error');
         }
       };
 
