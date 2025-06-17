@@ -182,7 +182,7 @@
       </div>
       
       <div id="config-status" class="alert">
-        <strong>API Status:</strong> <span id="config-message">Testing JSONP connection...</span>
+        <strong>API Status:</strong> <span id="config-message">Getting Ready...</span>
       </div>
       
       <div class="stats">
@@ -320,7 +320,7 @@
           
           if (data.success || data.status) {
             configStatus.className = 'alert success';
-            configMessage.textContent = '✅ JSONP connection successful! Ready to scan.';
+            configMessage.textContent = 'Ready to scan!';
             return true;
           } else {
             throw new Error('Invalid API response');
@@ -451,7 +451,7 @@
           stats.successfulSaves++;
           updateStats();
           updateHistoryDisplay();
-          updateStatus('⚡✅ Scan successful! Saved via JSONP to Google Sheets.', 'success');
+          updateStatus('Scan successful!', 'success');
           
         } catch (error) {
           console.error('Failed to save via JSONP:', error);
@@ -499,7 +499,7 @@
             html5QrCode.start(selectedCamera.id, config, onScanSuccess, onScanFailure)
               .then(() => {
                 isScanning = true;
-                updateStatus('📷 Scanner active - point camera at QR code', 'success');
+                updateStatus('📷 Scanner Active - Point Camera at QR code', 'success');
                 document.getElementById("stop-button").style.display = "block";
                 document.getElementById("start-button").style.display = "none";
               })
@@ -549,7 +549,7 @@
         
         const apiConnected = await checkApiConnection();
         if (apiConnected) {
-          updateStatus('⚡ Ready! JSONP connection established. Click "Start Scanner" to begin.', 'info');
+          updateStatus('Click "Start Scanner" to begin.', 'info');
         } else {
           updateStatus('Please configure JSONP API endpoint first', 'error');
         }
