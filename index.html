@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>QR Code Scanner</title>
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        max-width: 600px;
+        margin: 0 auto;
+        padding: 20px;
+        background-color: #f5f5f5;
+      }
+      .container {
+        background-color: white;
+        padding: 30px;
+        border-radius: 10px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      }
+      h2 {
+        text-align: center;
+        color: #333;
+        margin-bottom: 30px;
+      }
+      .alert {
+        padding: 15px;
+        margin-bottom: 20px;
+        border-radius: 5px;
+        border-left: 4px solid #f39c12;
+        background-color: #fef9e7;
+        color: #8a6d3b;
+      }
+      .alert.error {
+        border-left-color: #e74c3c;
+        background-color: #f2dede;
+        color: #a94442;
+      }
+      .alert.success {
+        border-left-color: #27ae60;
+        background-color: #dff0d8;
+        color: #3c763d;
+      }
+      #reader {
+        width: 100%;
+        max-width: 400px;
+        margin: 0 auto 20px auto;
+        border: 2px solid #ddd;
+        border-radius: 8px;
+        overflow: hidden;
+      }
+      #result {
+        font-size: 16px;
+        text-align: center;
+        margin: 20px 0;
+        padding: 15px;
+        background-color: #f8f9fa;
+        border-radius: 5px;
+        border-left: 4px solid #007bff;
+        word-wrap: break-word;
+      }
+      #history {
+        margin-top: 20px;
+        max-height: 300px;
+        overflow-y: auto;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        padding: 15px;
+        background-color: #f8f9fa;
+      }
+      .history-item {
+        padding: 10px;
+        margin: 5px 0;
+        background-color: white;
+        border-radius: 3px;
+        border-left: 3px solid #007bff;
+        font-size: 14px;
+        word-break: break-all;
+      }
+      .history-item.saved {
+        border-left-color: #28a745;
+      }
+      .history-item.error {
+        border-left-color: #dc3545;
+      }
+      .button {
+        display: block;
+        margin: 10px auto;
+        padding: 12px 24px;
+        font-size: 16px;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        transition: background-color 0.3s;
+        min-width: 120px;
+      }
+      #stop-button {
+        background-color: #dc3545;
+        color: white;
+        display: none;
+      }
+      #stop-button:hover {
+        background-color: #c82333;
+      }
+      #start-button {
+        background-color: #007bff;
+        color: white;
+        display: none;
+      }
+      #start-button:hover {
+        background-color: #0056b3;
+      }
+      #clear-button {
+        background-color: #6c757d;
+        color: white;
+        font-size: 14px;
+        padding: 8px 16px;
+        min-width: auto;
+      }
+      #clear-button:hover {
+        background-color: #545b62;
+      }
+      .status {
+        text-align: center;
+        margin: 10px 0;
+        font-weight: bold;
+      }
+      .success { color: #28a745; }
+      .error { color: #dc3545; }
+      .info { color: #007bff; }
+      .loading {
+        display: inline-block;
+        width: 20px;
+        height: 20px;
+        border: 3px solid #f3f3f3;
+        border-top: 3px solid #007bff;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin-left: 10px;
+      }
+      @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+      .stats {
+        display: flex;
+        justify-content: space-around;
+        margin: 20px 0;
+        text-align: center;
+      }
+      .stat-item {
+        flex: 1;
+        padding: 10px;
+      }
+      .stat-number {
+        font-size: 24px;
+        font-weight: bold;
+        color: #007bff;
+      }
+      .stat-label {
+        font-size: 12px;
+        color: #666;
+        text-transform: uppercase;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h2>QR Code Scanner</h2>
+      
+      <div id="config-status" class="alert">
+        <strong>Configuration Status:</strong> <span id="config-message">Checking...</span>
+      </div>
+      
+      <div class="stats">
+        <div class="stat-item">
+          <div class="stat-number" id="total-scans">0</div>
+          <div class="stat-label">Total Scans</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-number" id="successful-saves">0</div>
+          <div class="stat-label">Saved to Sheets</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-number" id="failed-saves">0</div>
+          <div class="stat-label">Failed Saves</div>
+        </div>
+      </div>
+      
+      <div id="reader"></div>
+      <div id="result"></div>
+      <div id="status" class="status"></div>
+      
+      <button id="start-button" class="button" onclick="startScanner()">Start Scanner</button>
+      <button id="stop-button" class="button" onclick="stopScanner()">Stop Scanner</button>
+      
+      <div id="history">
+        <h3 style="margin-top: 0; text-align: center;">
+          Scan History 
+          <button id="clear-button" class="button" onclick="clearHistory()" style="display: inline-block; margin-left: 10px;">Clear History</button>
+        </h3>
+        <div id="history-list"></div>
+      </div>
+    </div>
+
+    <script>
+      // ==========================================
+      // CONFIGURATION - REPLACE THESE VALUES
+      // ==========================================
+      const CONFIG = {
+        // Replace with your Google Sheets API key
+        GOOGLE_SHEETS_API_KEY: 'YOUR_API_KEY_HERE',
+        
+        // Replace with your Google Sheet ID (from the URL)
+        GOOGLE_SHEET_ID: 'YOUR_SHEET_ID_HERE',
+        
+        // Replace with your sheet name (usually 'Sheet1')
+        SHEET_NAME: 'Sheet1',
+        
+        // Optional: Customize the range where data will be appended
+        RANGE: 'A:B' // Columns A and B (Timestamp, QR Data)
+      };
+      
+      // ==========================================
+      // APPLICATION CODE
+      // ==========================================
+      let html5QrCode = null;
+      let isScanning = false;
+      let scanHistory = [];
+      let stats = {
+        totalScans: 0,
+        successfulSaves: 0,
+        failedSaves: 0
+      };
+
+      function updateStats() {
+        document.getElementById('total-scans').textContent = stats.totalScans;
+        document.getElementById('successful-saves').textContent = stats.successfulSaves;
+        document.getElementById('failed-saves').textContent = stats.failedSaves;
+      }
+
+      function checkConfiguration() {
+        const configStatus = document.getElementById('config-status');
+        const configMessage = document.getElementById('config-message');
+        
+        if (CONFIG.GOOGLE_SHEETS_API_KEY === 'YOUR_API_KEY_HERE' || 
+            CONFIG.GOOGLE_SHEET_ID === 'YOUR_SHEET_ID_HERE') {
+          configStatus.className = 'alert error';
+          configMessage.textContent = 'Please configure your Google Sheets API credentials in the code.';
+          return false;
+        } else {
+          configStatus.className = 'alert success';
+          configMessage.textContent = 'Google Sheets API configured successfully.';
+          return true;
+        }
+      }
+
+      function updateStatus(message, type = 'info') {
+        const statusElement = document.getElementById('status');
+        statusElement.textContent = message;
+        statusElement.className = `status ${type}`;
+      }
+
+      function showLoading(message) {
+        const statusElement = document.getElementById('status');
+        statusElement.innerHTML = `${message}<span class="loading"></span>`;
+        statusElement.className = 'status info';
+      }
+
+      async function saveToGoogleSheets(qrData) {
+        if (!checkConfiguration()) {
+          throw new Error('Google Sheets API not configured');
+        }
+
+        const timestamp = new Date().toLocaleString();
+        const values = [[timestamp, qrData]];
+        
+        const url = `https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.GOOGLE_SHEET_ID}/values/${CONFIG.SHEET_NAME}!${CONFIG.RANGE}:append?valueInputOption=RAW&key=${CONFIG.GOOGLE_SHEETS_API_KEY}`;
+        
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            values: values
+          })
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error?.message || `HTTP ${response.status}: Failed to save to Google Sheets`);
+        }
+
+        return await response.json();
+      }
+
+      function addToHistory(text, saved = false, error = null) {
+        const timestamp = new Date().toLocaleString();
+        scanHistory.unshift({ text, timestamp, saved, error });
+        
+        // Keep only last 20 scans
+        if (scanHistory.length > 20) {
+          scanHistory = scanHistory.slice(0, 20);
+        }
+        
+        updateHistoryDisplay();
+      }
+
+      function updateHistoryDisplay() {
+        const historyList = document.getElementById('history-list');
+        historyList.innerHTML = '';
+        
+        if (scanHistory.length === 0) {
+          historyList.innerHTML = '<div style="text-align: center; color: #666; font-style: italic;">No scans yet</div>';
+          return;
+        }
+        
+        scanHistory.forEach(item => {
+          const div = document.createElement('div');
+          div.className = `history-item ${item.saved ? 'saved' : (item.error ? 'error' : '')}`;
+          
+          let statusIcon = '';
+          let statusText = '';
+          if (item.saved) {
+            statusIcon = '✅';
+            statusText = 'Saved to Google Sheets';
+          } else if (item.error) {
+            statusIcon = '❌';
+            statusText = `Error: ${item.error}`;
+          } else {
+            statusIcon = '⏳';
+            statusText = 'Processing...';
+          }
+          
+          div.innerHTML = `
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+              <div style="font-weight: bold; color: #666; font-size: 12px;">${item.timestamp}</div>
+              <div style="font-size: 12px; color: ${item.saved ? '#28a745' : (item.error ? '#dc3545' : '#6c757d')};">
+                ${statusIcon} ${statusText}
+              </div>
+            </div>
+            <div style="font-family: monospace; background-color: #f8f9fa; padding: 5px; border-radius: 3px;">${item.text}</div>
+          `;
+          historyList.appendChild(div);
+        });
+      }
+
+      function clearHistory() {
+        scanHistory = [];
+        stats = { totalScans: 0, successfulSaves: 0, failedSaves: 0 };
+        updateHistoryDisplay();
+        updateStats();
+      }
+
+      async function onScanSuccess(decodedText, decodedResult) {
+        console.log('Scan successful:', decodedText);
+        document.getElementById("result").innerHTML = `<strong>Latest Scan:</strong><br><code>${decodedText}</code>`;
+        
+        // Update stats
+        stats.totalScans++;
+        updateStats();
+        
+        // Add to history first (will show as processing)
+        addToHistory(decodedText, false, null);
+        
+        // Show start button for next scan
+        document.getElementById("stop-button").style.display = "none";
+        document.getElementById("start-button").style.display = "block";
+        
+        // Stop the scanner
+        stopScanner();
+        
+        // Show loading status
+        showLoading('Saving to Google Sheets...');
+        
+        try {
+          await saveToGoogleSheets(decodedText);
+          
+          // Update the latest history item
+          if (scanHistory.length > 0) {
+            scanHistory[0].saved = true;
+            scanHistory[0].error = null;
+          }
+          
+          stats.successfulSaves++;
+          updateStats();
+          updateHistoryDisplay();
+          updateStatus('✅ Scan successful! Saved to Google Sheets.', 'success');
+          
+        } catch (error) {
+          console.error('Failed to save to Google Sheets:', error);
+          
+          // Update the latest history item
+          if (scanHistory.length > 0) {
+            scanHistory[0].saved = false;
+            scanHistory[0].error = error.message;
+          }
+          
+          stats.failedSaves++;
+          updateStats();
+          updateHistoryDisplay();
+          updateStatus(`❌ Scan successful but failed to save: ${error.message}`, 'error');
+        }
+      }
+
+      function onScanFailure(error) {
+        // Ignore scan failures - they happen frequently during scanning
+      }
+
+      function startScanner() {
+        if (isScanning) return;
+        
+        if (!checkConfiguration()) {
+          updateStatus('Please configure Google Sheets API first', 'error');
+          return;
+        }
+        
+        updateStatus('Starting camera...', 'info');
+        html5QrCode = new Html5Qrcode("reader");
+        
+        Html5Qrcode.getCameras().then(devices => {
+          if (devices && devices.length) {
+            // Try to use back camera first (usually better for QR scanning)
+            let selectedCamera = devices[0];
+            for (let device of devices) {
+              if (device.label && device.label.toLowerCase().includes('back')) {
+                selectedCamera = device;
+                break;
+              }
+            }
+            
+            const config = {
+              fps: 10,
+              qrbox: { width: 250, height: 250 },
+              aspectRatio: 1.0
+            };
+            
+            html5QrCode.start(selectedCamera.id, config, onScanSuccess, onScanFailure)
+              .then(() => {
+                isScanning = true;
+                updateStatus('📷 Scanner active - point camera at QR code', 'success');
+                document.getElementById("stop-button").style.display = "block";
+                document.getElementById("start-button").style.display = "none";
+              })
+              .catch(err => {
+                console.error('Failed to start scanner:', err);
+                updateStatus('Failed to start camera. Please allow camera access.', 'error');
+                document.getElementById("start-button").style.display = "block";
+              });
+          } else {
+            updateStatus('No camera found on this device', 'error');
+            document.getElementById("start-button").style.display = "block";
+          }
+        }).catch(err => {
+          console.error('Camera error:', err);
+          updateStatus(`Camera error: ${err.message || err}`, 'error');
+          document.getElementById("start-button").style.display = "block";
+        });
+      }
+
+      function stopScanner() {
+        if (html5QrCode && isScanning) {
+          html5QrCode.stop().then(() => {
+            isScanning = false;
+            document.getElementById("stop-button").style.display = "none";
+            document.getElementById("start-button").style.display = "block";
+            updateStatus('Scanner stopped', 'info');
+          }).catch(err => {
+            console.error('Failed to stop scanner:', err);
+            isScanning = false;
+            document.getElementById("stop-button").style.display = "none";
+            document.getElementById("start-button").style.display = "block";
+          });
+        }
+      }
+
+      // Initialize the scanner when page loads
+      window.onload = function() {
+        checkConfiguration();
+        updateStats();
+        
+        // Check if we're in a secure context (required for camera access)
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+          updateStatus('Camera access not available. Please use HTTPS.', 'error');
+          return;
+        }
+        
+        document.getElementById("start-button").style.display = "block";
+        
+        if (checkConfiguration()) {
+          updateStatus('Ready! Click "Start Scanner" to begin', 'info');
+        } else {
+          updateStatus('Please configure Google Sheets API first', 'error');
+        }
+      };
+
+      // Clean up when page unloads
+      window.onbeforeunload = function() {
+        if (html5QrCode && isScanning) {
+          html5QrCode.stop();
+        }
+      };
+    </script>
+  </body>
+</html>
