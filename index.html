@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>QR Code Scanner - Secure</title>
+    <title>QR Code Scanner - JSONP Version</title>
     <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
     <style>
       body {
@@ -161,14 +161,28 @@
         color: #666;
         text-transform: uppercase;
       }
+      .jsonp-indicator {
+        background-color: #e3f2fd;
+        border: 1px solid #2196f3;
+        color: #1976d2;
+        padding: 8px;
+        border-radius: 4px;
+        font-size: 12px;
+        text-align: center;
+        margin-bottom: 15px;
+      }
     </style>
   </head>
   <body>
     <div class="container">
-      <h2>🔒 Secure QR Code Scanner</h2>
+      <h2>🔐 Secure QR Scanner (JSONP)</h2>
+      
+      <div class="jsonp-indicator">
+        ⚡ Using JSONP for cross-origin requests - No CORS issues!
+      </div>
       
       <div id="config-status" class="alert">
-        <strong>API Status:</strong> <span id="config-message">Checking connection...</span>
+        <strong>API Status:</strong> <span id="config-message">Testing JSONP connection...</span>
       </div>
       
       <div class="stats">
@@ -204,13 +218,70 @@
 
     <script>
       // ==========================================
-      // SECURE CONFIGURATION
+      // JSONP CONFIGURATION
       // ==========================================
       const CONFIG = {
         // Replace with your Google Apps Script Web App URL
-        // Get this after deploying your Apps Script as a web app
-        API_ENDPOINT: 'https://script.google.com/macros/s/AKfycbz4oq2BUJtTt7msi701ldH2JShF1PNg1egGS1IjkjQ7BUAp8Ar5GbvMIVZVWCQiBXrL/exec'
+        API_ENDPOINT: 'https://script.google.com/macros/s/AKfycbz6xdFm6SyKQdh6_ruDgyiXpFgeDYu-mYh-X7afmNnXx9bt_9H5IPauL_YCQe6rSHh5/exec'
       };
+      
+      // ==========================================
+      // JSONP HELPER FUNCTIONS
+      // ==========================================
+      
+      function makeJSONPRequest(url, params = {}) {
+        return new Promise((resolve, reject) => {
+          // Create unique callback name
+          const callbackName = 'jsonp_callback_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+          
+          // Create global callback function
+          window[callbackName] = function(data) {
+            // Clean up
+            delete window[callbackName];
+            if (document.body.contains(script)) {
+              document.body.removeChild(script);
+            }
+            
+            // Resolve with data
+            resolve(data);
+          };
+          
+          // Build URL with parameters
+          const urlParams = new URLSearchParams({
+            callback: callbackName,
+            ...params,
+            _t: Date.now() // Cache buster
+          });
+          
+          // Create script element
+          const script = document.createElement('script');
+          script.src = url + '?' + urlParams.toString();
+          
+          // Handle errors
+          script.onerror = function() {
+            // Clean up
+            delete window[callbackName];
+            if (document.body.contains(script)) {
+              document.body.removeChild(script);
+            }
+            reject(new Error('JSONP request failed - network error'));
+          };
+          
+          // Add to DOM to trigger request
+          document.body.appendChild(script);
+          
+          // Set timeout
+          setTimeout(() => {
+            if (window[callbackName]) {
+              delete window[callbackName];
+              if (document.body.contains(script)) {
+                document.body.removeChild(script);
+              }
+              reject(new Error('JSONP request timeout'));
+            }
+          }, 15000); // 15 second timeout
+        });
+      }
       
       // ==========================================
       // APPLICATION CODE
@@ -241,19 +312,22 @@
         }
         
         try {
-          const response = await fetch(CONFIG.API_ENDPOINT);
-          const data = await response.json();
+          configMessage.textContent = 'Testing JSONP connection...';
           
-          if (data.status) {
+          const data = await makeJSONPRequest(CONFIG.API_ENDPOINT, {
+            action: 'status'
+          });
+          
+          if (data.success || data.status) {
             configStatus.className = 'alert success';
-            configMessage.textContent = '✅ Connected to secure API endpoint.';
+            configMessage.textContent = '✅ JSONP connection successful! Ready to scan.';
             return true;
           } else {
             throw new Error('Invalid API response');
           }
         } catch (error) {
           configStatus.className = 'alert error';
-          configMessage.textContent = `❌ API connection failed: ${error.message}`;
+          configMessage.textContent = `❌ JSONP connection failed: ${error.message}`;
           return false;
         }
       }
@@ -271,26 +345,16 @@
       }
 
       async function saveToSecureAPI(qrData) {
-        const response = await fetch(CONFIG.API_ENDPOINT, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            qrData: qrData
-          })
+        console.log('Saving QR data via JSONP:', qrData);
+        
+        const result = await makeJSONPRequest(CONFIG.API_ENDPOINT, {
+          qrData: qrData
         });
-
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}: Network error`);
-        }
-
-        const result = await response.json();
         
         if (!result.success) {
           throw new Error(result.error || 'Unknown API error');
         }
-
+        
         return result;
       }
 
@@ -322,8 +386,8 @@
           let statusIcon = '';
           let statusText = '';
           if (item.saved) {
-            statusIcon = '🔒✅';
-            statusText = 'Securely saved';
+            statusIcon = '⚡✅';
+            statusText = 'Saved via JSONP';
           } else if (item.error) {
             statusIcon = '❌';
             statusText = `Error: ${item.error}`;
@@ -371,10 +435,12 @@
         stopScanner();
         
         // Show loading status
-        showLoading('Securely saving to Google Sheets...');
+        showLoading('Saving via JSONP...');
         
         try {
-          await saveToSecureAPI(decodedText);
+          const result = await saveToSecureAPI(decodedText);
+          
+          console.log('Save successful:', result);
           
           // Update the latest history item
           if (scanHistory.length > 0) {
@@ -385,10 +451,10 @@
           stats.successfulSaves++;
           updateStats();
           updateHistoryDisplay();
-          updateStatus('🔒✅ Scan successful! Securely saved to Google Sheets.', 'success');
+          updateStatus('⚡✅ Scan successful! Saved via JSONP to Google Sheets.', 'success');
           
         } catch (error) {
-          console.error('Failed to save via secure API:', error);
+          console.error('Failed to save via JSONP:', error);
           
           // Update the latest history item
           if (scanHistory.length > 0) {
@@ -483,9 +549,9 @@
         
         const apiConnected = await checkApiConnection();
         if (apiConnected) {
-          updateStatus('🔒 Ready! Click "Start Scanner" to begin secure scanning', 'info');
+          updateStatus('⚡ Ready! JSONP connection established. Click "Start Scanner" to begin.', 'info');
         } else {
-          updateStatus('Please configure secure API endpoint first', 'error');
+          updateStatus('Please configure JSONP API endpoint first', 'error');
         }
       };
 
