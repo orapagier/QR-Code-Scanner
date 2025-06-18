@@ -161,6 +161,110 @@
         color: #666;
         text-transform: uppercase;
       }
+      
+      /* Modal Styles */
+      .modal {
+        display: none;
+        position: fixed;
+        z-index: 1000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+        animation: fadeIn 0.3s ease-in-out;
+      }
+      
+      .modal-content {
+        background-color: white;
+        margin: 15% auto;
+        padding: 30px;
+        border-radius: 10px;
+        width: 90%;
+        max-width: 400px;
+        text-align: center;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        animation: slideIn 0.3s ease-in-out;
+      }
+      
+      @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+      }
+      
+      @keyframes slideIn {
+        from { transform: translateY(-50px); opacity: 0; }
+        to { transform: translateY(0); opacity: 1; }
+      }
+      
+      .modal h3 {
+        color: #333;
+        margin-bottom: 20px;
+        font-size: 20px;
+      }
+      
+      .modal p {
+        color: #666;
+        margin-bottom: 25px;
+        font-size: 16px;
+        line-height: 1.4;
+      }
+      
+      .modal-buttons {
+        display: flex;
+        gap: 15px;
+        justify-content: center;
+      }
+      
+      .modal-button {
+        padding: 12px 30px;
+        font-size: 16px;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        font-weight: bold;
+        transition: all 0.2s;
+        min-width: 100px;
+      }
+      
+      .modal-button.yes {
+        background-color: #28a745;
+        color: white;
+      }
+      
+      .modal-button.yes:hover {
+        background-color: #218838;
+        transform: translateY(-1px);
+      }
+      
+      .modal-button.no {
+        background-color: #dc3545;
+        color: white;
+      }
+      
+      .modal-button.no:hover {
+        background-color: #c82333;
+        transform: translateY(-1px);
+      }
+      
+      .uniform-indicator {
+        display: inline-block;
+        margin-left: 10px;
+        padding: 2px 8px;
+        border-radius: 12px;
+        font-size: 11px;
+        font-weight: bold;
+      }
+      
+      .uniform-yes {
+        background-color: #d4edda;
+        color: #155724;
+      }
+      
+      .uniform-no {
+        background-color: #f8d7da;
+        color: #721c24;
+      }
     </style>
   </head>
   <body>
@@ -198,13 +302,25 @@
       </div>
     </div>
 
+    <!-- Uniform Check Modal -->
+    <div id="uniformModal" class="modal">
+      <div class="modal-content">
+        <h3>🎯 Uniform Check</h3>
+        <p>Is this person wearing proper uniform?</p>
+        <div class="modal-buttons">
+          <button class="modal-button yes" onclick="confirmUniform(true)">✅ Yes</button>
+          <button class="modal-button no" onclick="confirmUniform(false)">❌ No</button>
+        </div>
+      </div>
+    </div>
+
     <script>
       // ==========================================
       // JSONP CONFIGURATION
       // ==========================================
       const CONFIG = {
         // Replace with your Google Apps Script Web App URL
-        API_ENDPOINT: 'https://script.google.com/macros/s/AKfycbz6xdFm6SyKQdh6_ruDgyiXpFgeDYu-mYh-X7afmNnXx9bt_9H5IPauL_YCQe6rSHh5/exec'
+        API_ENDPOINT: 'https://script.google.com/macros/s/AKfycbwxXmYg-gTn75S-or0N67iJQprzmEuKeGOJMbzQhhDhqVbG3bRHBJD5m5PbKdYe_iy-/exec'
       };
       
       // ==========================================
@@ -276,6 +392,9 @@
         successfulSaves: 0,
         failedSaves: 0
       };
+      
+      // Store current scan data for uniform check
+      let currentScanData = null;
 
       function updateStats() {
         document.getElementById('total-scans').textContent = stats.totalScans;
@@ -312,11 +431,12 @@
         statusElement.className = 'status info';
       }
 
-      async function saveToSecureAPI(qrData) {
-        console.log('Saving QR data via JSONP:', qrData);
+      async function saveToSecureAPI(qrData, uniformCompliance) {
+        console.log('Saving QR data via JSONP:', qrData, 'Uniform:', uniformCompliance);
         
         const result = await makeJSONPRequest(CONFIG.API_ENDPOINT, {
-          qrData: qrData
+          qrData: qrData,
+          uniformCompliance: uniformCompliance ? 'Yes' : 'No'
         });
         
         // More flexible success checking
@@ -327,9 +447,9 @@
         return result;
       }
 
-      function addToHistory(text, saved = false, error = null) {
+      function addToHistory(text, saved = false, error = null, uniformCompliance = null) {
         const timestamp = new Date().toLocaleString();
-        scanHistory.unshift({ text, timestamp, saved, error });
+        scanHistory.unshift({ text, timestamp, saved, error, uniformCompliance });
         
         // Keep only last 20 scans
         if (scanHistory.length > 20) {
@@ -365,6 +485,13 @@
             statusText = 'Processing...';
           }
           
+          let uniformIndicator = '';
+          if (item.uniformCompliance !== null) {
+            uniformIndicator = `<span class="uniform-indicator ${item.uniformCompliance ? 'uniform-yes' : 'uniform-no'}">
+              ${item.uniformCompliance ? '👔 PROPER' : '⚠️ IMPROPER'}
+            </span>`;
+          }
+          
           div.innerHTML = `
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
               <div style="font-weight: bold; color: #666; font-size: 12px;">${item.timestamp}</div>
@@ -372,7 +499,8 @@
                 ${statusIcon} ${statusText}
               </div>
             </div>
-            <div style="font-family: monospace; background-color: #f8f9fa; padding: 5px; border-radius: 3px;">${item.text}</div>
+            <div style="font-family: monospace; background-color: #f8f9fa; padding: 5px; border-radius: 3px; margin-bottom: 5px;">${item.text}</div>
+            ${uniformIndicator}
           `;
           historyList.appendChild(div);
         });
@@ -385,29 +513,35 @@
         updateStats();
       }
 
-      async function onScanSuccess(decodedText, decodedResult) {
-        console.log('Scan successful:', decodedText);
-        document.getElementById("result").innerHTML = `<strong>Latest Scan:</strong><br><code>${decodedText}</code>`;
+      function showUniformModal(qrData) {
+        currentScanData = qrData;
+        document.getElementById('uniformModal').style.display = 'block';
+        updateStatus('👔 Please check uniform compliance', 'info');
+      }
+
+      function confirmUniform(hasProperUniform) {
+        // Hide modal
+        document.getElementById('uniformModal').style.display = 'none';
         
-        // Update stats
-        stats.totalScans++;
-        updateStats();
-        
-        // Add to history first (will show as processing)
-        addToHistory(decodedText, false, null);
-        
-        // Show start button for next scan
-        document.getElementById("stop-button").style.display = "none";
-        document.getElementById("start-button").style.display = "block";
-        
-        // Stop the scanner
-        stopScanner();
-        
+        if (currentScanData) {
+          // Update the latest history item with uniform compliance
+          if (scanHistory.length > 0) {
+            scanHistory[0].uniformCompliance = hasProperUniform;
+            updateHistoryDisplay();
+          }
+          
+          // Proceed with saving
+          proceedWithSave(currentScanData, hasProperUniform);
+          currentScanData = null;
+        }
+      }
+
+      async function proceedWithSave(qrData, uniformCompliance) {
         // Show loading status
         showLoading('Saving to Google Sheets...');
         
         try {
-          const result = await saveToSecureAPI(decodedText);
+          const result = await saveToSecureAPI(qrData, uniformCompliance);
           
           console.log('Save result:', result);
           
@@ -436,6 +570,28 @@
           updateHistoryDisplay();
           updateStatus(`❌ Failed to save: ${error.message}`, 'error');
         }
+      }
+
+      async function onScanSuccess(decodedText, decodedResult) {
+        console.log('Scan successful:', decodedText);
+        document.getElementById("result").innerHTML = `<strong>Latest Scan:</strong><br><code>${decodedText}</code>`;
+        
+        // Update stats
+        stats.totalScans++;
+        updateStats();
+        
+        // Add to history first (will show as processing)
+        addToHistory(decodedText, false, null, null);
+        
+        // Show start button for next scan
+        document.getElementById("stop-button").style.display = "none";
+        document.getElementById("start-button").style.display = "block";
+        
+        // Stop the scanner
+        stopScanner();
+        
+        // Show uniform compliance modal
+        showUniformModal(decodedText);
       }
 
       function onScanFailure(error) {
@@ -501,6 +657,15 @@
             document.getElementById("stop-button").style.display = "none";
             document.getElementById("start-button").style.display = "block";
           });
+        }
+      }
+
+      // Close modal when clicking outside of it
+      window.onclick = function(event) {
+        const modal = document.getElementById('uniformModal');
+        if (event.target === modal) {
+          // Don't close the modal by clicking outside - force user to make a choice
+          updateStatus('👔 Please select Yes or No for uniform compliance', 'info');
         }
       }
 
