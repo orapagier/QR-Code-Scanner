@@ -269,7 +269,7 @@
   </head>
   <body>
     <div class="container">
-      <h2>NEMA QR Scanner</h2>
+      <h2>NEMA QR Code Scanner</h2>
       
       <div class="stats">
         <div class="stat-item">
@@ -305,7 +305,7 @@
     <!-- Uniform Check Modal -->
     <div id="uniformModal" class="modal">
       <div class="modal-content">
-        <h3>🎯 Uniform Check</h3>
+        <h3>🎯 Uniform Check!</h3>
         <p>Is this person wearing proper uniform?</p>
         <div class="modal-buttons">
           <button class="modal-button yes" onclick="confirmUniform(true)">✅ Yes</button>
@@ -538,7 +538,7 @@
 
       async function proceedWithSave(qrData, uniformCompliance) {
         // Show loading status
-        showLoading('Saving to Google Sheets...');
+        showLoading('Saving...');
         
         try {
           const result = await saveToSecureAPI(qrData, uniformCompliance);
