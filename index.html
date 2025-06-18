@@ -2,164 +2,236 @@
 <html>
   <head>
     <title>NEMA QR Code Scanner</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
     <style>
-      body {
-        font-family: Arial, sans-serif;
-        max-width: 600px;
-        margin: 0 auto;
-        padding: 20px;
-        background-color: #f5f5f5;
+      * {
+        box-sizing: border-box;
       }
+      
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+        margin: 0;
+        padding: 10px;
+        background-color: #f5f5f5;
+        min-height: 100vh;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+      }
+      
       .container {
         background-color: white;
-        padding: 30px;
-        border-radius: 10px;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        padding: 20px;
+        border-radius: 12px;
+        box-shadow: 0 2px 20px rgba(0,0,0,0.1);
+        max-width: 100%;
       }
+      
       h2 {
         text-align: center;
         color: #333;
-        margin-bottom: 30px;
+        margin: 0 0 20px 0;
+        font-size: 24px;
+        font-weight: 600;
       }
+      
       .alert {
-        padding: 15px;
-        margin-bottom: 20px;
-        border-radius: 5px;
+        padding: 12px;
+        margin-bottom: 15px;
+        border-radius: 8px;
         border-left: 4px solid #f39c12;
         background-color: #fef9e7;
         color: #8a6d3b;
+        font-size: 14px;
       }
+      
       .alert.error {
         border-left-color: #e74c3c;
         background-color: #f2dede;
         color: #a94442;
       }
+      
       .alert.success {
         border-left-color: #27ae60;
         background-color: #dff0d8;
         color: #3c763d;
       }
+      
       #reader {
         width: 100%;
-        max-width: 400px;
+        max-width: 350px;
         margin: 0 auto 20px auto;
         border: 2px solid #ddd;
-        border-radius: 8px;
+        border-radius: 12px;
         overflow: hidden;
+        background-color: #000;
       }
+      
       #result {
-        font-size: 16px;
+        font-size: 14px;
         text-align: center;
         margin: 20px 0;
         padding: 15px;
         background-color: #f8f9fa;
-        border-radius: 5px;
+        border-radius: 8px;
         border-left: 4px solid #007bff;
         word-wrap: break-word;
+        font-family: monospace;
       }
+      
       #history {
         margin-top: 20px;
-        max-height: 300px;
+        max-height: 250px;
         overflow-y: auto;
         border: 1px solid #ddd;
-        border-radius: 5px;
+        border-radius: 8px;
         padding: 15px;
         background-color: #f8f9fa;
+        -webkit-overflow-scrolling: touch;
       }
+      
       .history-item {
-        padding: 10px;
-        margin: 5px 0;
+        padding: 12px;
+        margin: 8px 0;
         background-color: white;
-        border-radius: 3px;
+        border-radius: 8px;
         border-left: 3px solid #007bff;
-        font-size: 14px;
+        font-size: 13px;
         word-break: break-all;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
       }
+      
       .history-item.saved {
         border-left-color: #28a745;
       }
+      
       .history-item.error {
         border-left-color: #dc3545;
       }
+      
       .button {
         display: block;
-        margin: 10px auto;
-        padding: 12px 24px;
+        margin: 15px auto;
+        padding: 16px 24px;
         font-size: 16px;
+        font-weight: 600;
         border: none;
-        border-radius: 5px;
+        border-radius: 12px;
         cursor: pointer;
-        transition: background-color 0.3s;
-        min-width: 120px;
+        transition: all 0.2s ease;
+        min-width: 150px;
+        touch-action: manipulation;
+        -webkit-tap-highlight-color: transparent;
       }
+      
+      .button:active {
+        transform: scale(0.98);
+      }
+      
       #stop-button {
         background-color: #dc3545;
         color: white;
         display: none;
       }
-      #stop-button:hover {
+      
+      #stop-button:hover, #stop-button:active {
         background-color: #c82333;
       }
+      
       #start-button {
         background-color: #007bff;
         color: white;
         display: none;
       }
-      #start-button:hover {
+      
+      #start-button:hover, #start-button:active {
         background-color: #0056b3;
       }
+      
       #clear-button {
         background-color: #6c757d;
         color: white;
-        font-size: 14px;
+        font-size: 12px;
         padding: 8px 16px;
         min-width: auto;
+        border-radius: 20px;
       }
-      #clear-button:hover {
+      
+      #clear-button:hover, #clear-button:active {
         background-color: #545b62;
       }
+      
       .status {
         text-align: center;
-        margin: 10px 0;
-        font-weight: bold;
+        margin: 15px 0;
+        font-weight: 600;
+        font-size: 14px;
+        padding: 10px;
+        border-radius: 8px;
       }
-      .success { color: #28a745; }
-      .error { color: #dc3545; }
-      .info { color: #007bff; }
+      
+      .success { 
+        color: #28a745; 
+        background-color: #d4edda;
+      }
+      
+      .error { 
+        color: #dc3545; 
+        background-color: #f8d7da;
+      }
+      
+      .info { 
+        color: #007bff; 
+        background-color: #d1ecf1;
+      }
+      
       .loading {
         display: inline-block;
-        width: 20px;
-        height: 20px;
-        border: 3px solid #f3f3f3;
-        border-top: 3px solid #007bff;
+        width: 18px;
+        height: 18px;
+        border: 2px solid #f3f3f3;
+        border-top: 2px solid #007bff;
         border-radius: 50%;
         animation: spin 1s linear infinite;
-        margin-left: 10px;
+        margin-left: 8px;
+        vertical-align: middle;
       }
+      
       @keyframes spin {
         0% { transform: rotate(0deg); }
         100% { transform: rotate(360deg); }
       }
+      
       .stats {
-        display: flex;
-        justify-content: space-around;
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 10px;
         margin: 20px 0;
         text-align: center;
       }
+      
       .stat-item {
-        flex: 1;
-        padding: 10px;
+        padding: 15px 10px;
+        background-color: #f8f9fa;
+        border-radius: 12px;
+        border: 1px solid #e9ecef;
       }
+      
       .stat-number {
-        font-size: 24px;
-        font-weight: bold;
+        font-size: 20px;
+        font-weight: 700;
         color: #007bff;
+        display: block;
       }
+      
       .stat-label {
-        font-size: 12px;
+        font-size: 11px;
         color: #666;
         text-transform: uppercase;
+        margin-top: 4px;
+        font-weight: 500;
       }
       
       /* Modal Styles */
@@ -171,19 +243,19 @@
         top: 0;
         width: 100%;
         height: 100%;
-        background-color: rgba(0, 0, 0, 0.5);
+        background-color: rgba(0, 0, 0, 0.6);
         animation: fadeIn 0.3s ease-in-out;
       }
       
       .modal-content {
         background-color: white;
-        margin: 15% auto;
-        padding: 30px;
-        border-radius: 10px;
+        margin: 20% auto;
+        padding: 30px 25px;
+        border-radius: 16px;
         width: 90%;
-        max-width: 400px;
+        max-width: 350px;
         text-align: center;
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
         animation: slideIn 0.3s ease-in-out;
       }
       
@@ -193,14 +265,15 @@
       }
       
       @keyframes slideIn {
-        from { transform: translateY(-50px); opacity: 0; }
+        from { transform: translateY(-30px); opacity: 0; }
         to { transform: translateY(0); opacity: 1; }
       }
       
       .modal h3 {
         color: #333;
-        margin-bottom: 20px;
+        margin-bottom: 15px;
         font-size: 20px;
+        font-weight: 600;
       }
       
       .modal p {
@@ -211,20 +284,25 @@
       }
       
       .modal-buttons {
-        display: flex;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
         gap: 15px;
-        justify-content: center;
       }
       
       .modal-button {
-        padding: 12px 30px;
+        padding: 16px 20px;
         font-size: 16px;
         border: none;
-        border-radius: 5px;
+        border-radius: 12px;
         cursor: pointer;
-        font-weight: bold;
-        transition: all 0.2s;
-        min-width: 100px;
+        font-weight: 600;
+        transition: all 0.2s ease;
+        touch-action: manipulation;
+        -webkit-tap-highlight-color: transparent;
+      }
+      
+      .modal-button:active {
+        transform: scale(0.95);
       }
       
       .modal-button.yes {
@@ -232,9 +310,8 @@
         color: white;
       }
       
-      .modal-button.yes:hover {
+      .modal-button.yes:hover, .modal-button.yes:active {
         background-color: #218838;
-        transform: translateY(-1px);
       }
       
       .modal-button.no {
@@ -242,18 +319,18 @@
         color: white;
       }
       
-      .modal-button.no:hover {
+      .modal-button.no:hover, .modal-button.no:active {
         background-color: #c82333;
-        transform: translateY(-1px);
       }
       
       .uniform-indicator {
         display: inline-block;
-        margin-left: 10px;
-        padding: 2px 8px;
-        border-radius: 12px;
+        margin-top: 8px;
+        padding: 4px 12px;
+        border-radius: 16px;
         font-size: 11px;
-        font-weight: bold;
+        font-weight: 600;
+        text-transform: uppercase;
       }
       
       .uniform-yes {
@@ -265,11 +342,135 @@
         background-color: #f8d7da;
         color: #721c24;
       }
+      
+      .history-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 15px;
+      }
+      
+      .history-header h3 {
+        margin: 0;
+        font-size: 16px;
+        font-weight: 600;
+        color: #333;
+      }
+      
+      /* Mobile-specific styles */
+      @media (max-width: 480px) {
+        body {
+          padding: 5px;
+        }
+        
+        .container {
+          padding: 15px;
+          border-radius: 8px;
+        }
+        
+        h2 {
+          font-size: 20px;
+          margin-bottom: 15px;
+        }
+        
+        .stats {
+          gap: 8px;
+        }
+        
+        .stat-item {
+          padding: 12px 8px;
+        }
+        
+        .stat-number {
+          font-size: 18px;
+        }
+        
+        .stat-label {
+          font-size: 10px;
+        }
+        
+        #reader {
+          max-width: 100%;
+          margin-bottom: 15px;
+        }
+        
+        .button {
+          padding: 14px 20px;
+          font-size: 15px;
+          margin: 12px auto;
+        }
+        
+        .modal-content {
+          margin: 15% auto;
+          padding: 25px 20px;
+          width: 95%;
+        }
+        
+        .modal h3 {
+          font-size: 18px;
+        }
+        
+        .modal p {
+          font-size: 15px;
+        }
+        
+        .modal-button {
+          padding: 14px 16px;
+          font-size: 15px;
+        }
+        
+        #history {
+          max-height: 200px;
+          padding: 12px;
+        }
+        
+        .history-item {
+          padding: 10px;
+          font-size: 12px;
+        }
+      }
+      
+      /* Landscape mobile styles */
+      @media (max-height: 600px) and (orientation: landscape) {
+        .container {
+          padding: 10px;
+        }
+        
+        .stats {
+          margin: 10px 0;
+        }
+        
+        .stat-item {
+          padding: 8px;
+        }
+        
+        .stat-number {
+          font-size: 16px;
+        }
+        
+        #history {
+          max-height: 150px;
+        }
+        
+        .modal-content {
+          margin: 10% auto;
+          padding: 20px;
+        }
+      }
+      
+      /* Prevent zoom on input focus for iOS */
+      @media screen and (-webkit-min-device-pixel-ratio: 0) {
+        select:focus,
+        textarea:focus,
+        input:focus {
+          font-size: 16px;
+        }
+      }
     </style>
   </head>
   <body>
     <div class="container">
-      <h2>NEMA QR Code Scanner</h2>
+      <h2>📱 NEMA QR Code Scanner</h2>
       
       <div class="stats">
         <div class="stat-item">
@@ -290,14 +491,14 @@
       <div id="result"></div>
       <div id="status" class="status"></div>
       
-      <button id="start-button" class="button" onclick="startScanner()">Start Scanner</button>
-      <button id="stop-button" class="button" onclick="stopScanner()">Stop Scanner</button>
+      <button id="start-button" class="button" onclick="startScanner()">📷 Start Scanner</button>
+      <button id="stop-button" class="button" onclick="stopScanner()">⏹️ Stop Scanner</button>
       
       <div id="history">
-        <h3 style="margin-top: 0; text-align: center;">
-          Scan History 
-          <button id="clear-button" class="button" onclick="clearHistory()" style="display: inline-block; margin-left: 10px;">Clear History</button>
-        </h3>
+        <div class="history-header">
+          <h3>📋 Scan History</h3>
+          <button id="clear-button" class="button" onclick="clearHistory()">🗑️ Clear</button>
+        </div>
         <div id="history-list"></div>
       </div>
     </div>
@@ -305,7 +506,7 @@
     <!-- Uniform Check Modal -->
     <div id="uniformModal" class="modal">
       <div class="modal-content">
-        <h3>🎯 Uniform Check!</h3>
+        <h3>👔 Uniform Check</h3>
         <p>Is this person wearing proper uniform?</p>
         <div class="modal-buttons">
           <button class="modal-button yes" onclick="confirmUniform(true)">✅ Yes</button>
@@ -464,7 +665,7 @@
         historyList.innerHTML = '';
         
         if (scanHistory.length === 0) {
-          historyList.innerHTML = '<div style="text-align: center; color: #666; font-style: italic;">No scans yet</div>';
+          historyList.innerHTML = '<div style="text-align: center; color: #666; font-style: italic; padding: 20px;">No scans yet</div>';
           return;
         }
         
@@ -476,7 +677,7 @@
           let statusText = '';
           if (item.saved) {
             statusIcon = '✅';
-            statusText = 'Saved to Sheets';
+            statusText = 'Saved';
           } else if (item.error) {
             statusIcon = '❌';
             statusText = `Error: ${item.error}`;
@@ -487,19 +688,19 @@
           
           let uniformIndicator = '';
           if (item.uniformCompliance !== null) {
-            uniformIndicator = `<span class="uniform-indicator ${item.uniformCompliance ? 'uniform-yes' : 'uniform-no'}">
-              ${item.uniformCompliance ? '👔 PROPER' : '⚠️ IMPROPER'}
-            </span>`;
+            uniformIndicator = `<div class="uniform-indicator ${item.uniformCompliance ? 'uniform-yes' : 'uniform-no'}">
+              ${item.uniformCompliance ? '👔 Proper' : '⚠️ Improper'}
+            </div>`;
           }
           
           div.innerHTML = `
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
-              <div style="font-weight: bold; color: #666; font-size: 12px;">${item.timestamp}</div>
-              <div style="font-size: 12px; color: ${item.saved ? '#28a745' : (item.error ? '#dc3545' : '#6c757d')};">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; flex-wrap: wrap;">
+              <div style="font-weight: 600; color: #666; font-size: 11px;">${item.timestamp}</div>
+              <div style="font-size: 11px; color: ${item.saved ? '#28a745' : (item.error ? '#dc3545' : '#6c757d')}; font-weight: 500;">
                 ${statusIcon} ${statusText}
               </div>
             </div>
-            <div style="font-family: monospace; background-color: #f8f9fa; padding: 5px; border-radius: 3px; margin-bottom: 5px;">${item.text}</div>
+            <div style="font-family: monospace; background-color: #f1f3f4; padding: 8px; border-radius: 6px; margin-bottom: 5px; font-size: 11px; word-break: break-all;">${item.text}</div>
             ${uniformIndicator}
           `;
           historyList.appendChild(div);
@@ -507,10 +708,12 @@
       }
 
       function clearHistory() {
-        scanHistory = [];
-        stats = { totalScans: 0, successfulSaves: 0, failedSaves: 0 };
-        updateHistoryDisplay();
-        updateStats();
+        if (confirm('Clear all scan history?')) {
+          scanHistory = [];
+          stats = { totalScans: 0, successfulSaves: 0, failedSaves: 0 };
+          updateHistoryDisplay();
+          updateStats();
+        }
       }
 
       function showUniformModal(qrData) {
@@ -576,6 +779,11 @@
         console.log('Scan successful:', decodedText);
         document.getElementById("result").innerHTML = `<strong>Latest Scan:</strong><br><code>${decodedText}</code>`;
         
+        // Vibrate on successful scan (if supported)
+        if (navigator.vibrate) {
+          navigator.vibrate(200);
+        }
+        
         // Update stats
         stats.totalScans++;
         updateStats();
@@ -601,7 +809,7 @@
       function startScanner() {
         if (isScanning) return;
         
-        updateStatus('Starting camera...', 'info');
+        updateStatus('📷 Starting camera...', 'info');
         html5QrCode = new Html5Qrcode("reader");
         
         Html5Qrcode.getCameras().then(devices => {
@@ -617,29 +825,30 @@
             
             const config = {
               fps: 10,
-              qrbox: { width: 250, height: 250 },
-              aspectRatio: 1.0
+              qrbox: { width: 200, height: 200 },
+              aspectRatio: 1.0,
+              supportedScanTypes: [Html5QrcodeScanType.SCAN_TYPE_CAMERA]
             };
             
             html5QrCode.start(selectedCamera.id, config, onScanSuccess, onScanFailure)
               .then(() => {
                 isScanning = true;
-                updateStatus('📷 Scanner Active - Point Camera at QR code', 'success');
+                updateStatus('📷 Scanner Active - Point at QR code', 'success');
                 document.getElementById("stop-button").style.display = "block";
                 document.getElementById("start-button").style.display = "none";
               })
               .catch(err => {
                 console.error('Failed to start scanner:', err);
-                updateStatus('Failed to start camera. Please allow camera access.', 'error');
+                updateStatus('❌ Failed to start camera. Please allow camera access.', 'error');
                 document.getElementById("start-button").style.display = "block";
               });
           } else {
-            updateStatus('No camera found on this device', 'error');
+            updateStatus('❌ No camera found on this device', 'error');
             document.getElementById("start-button").style.display = "block";
           }
         }).catch(err => {
           console.error('Camera error:', err);
-          updateStatus(`Camera error: ${err.message || err}`, 'error');
+          updateStatus(`❌ Camera error: ${err.message || err}`, 'error');
           document.getElementById("start-button").style.display = "block";
         });
       }
@@ -650,7 +859,7 @@
             isScanning = false;
             document.getElementById("stop-button").style.display = "none";
             document.getElementById("start-button").style.display = "block";
-            updateStatus('Scanner stopped', 'info');
+            updateStatus('⏹️ Scanner stopped', 'info');
           }).catch(err => {
             console.error('Failed to stop scanner:', err);
             isScanning = false;
@@ -660,14 +869,24 @@
         }
       }
 
-      // Close modal when clicking outside of it
+      // Prevent accidental modal close
       window.onclick = function(event) {
         const modal = document.getElementById('uniformModal');
         if (event.target === modal) {
-          // Don't close the modal by clicking outside - force user to make a choice
           updateStatus('👔 Please select Yes or No for uniform compliance', 'info');
         }
       }
+
+      // Handle orientation changes
+      window.addEventListener('orientationchange', function() {
+        setTimeout(() => {
+          if (isScanning && html5QrCode) {
+            // Restart scanner after orientation change
+            stopScanner();
+            setTimeout(startScanner, 500);
+          }
+        }, 100);
+      });
 
       // Initialize the scanner when page loads
       window.onload = async function() {
@@ -675,14 +894,14 @@
         
         // Check if we're in a secure context (required for camera access)
         if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-          updateStatus('Camera access not available. Please use HTTPS.', 'error');
+          updateStatus('❌ Camera access not available. Please use HTTPS.', 'error');
           return;
         }
         
         document.getElementById("start-button").style.display = "block";
         
         const apiConnected = await checkApiConnection();
-        updateStatus('Ready to scan! Click "Start Scanner" to begin.', 'info');
+        updateStatus('✅ Ready to scan! Tap "Start Scanner" to begin.', 'success');
       };
 
       // Clean up when page unloads
