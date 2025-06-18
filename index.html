@@ -234,6 +234,21 @@
         font-weight: 500;
       }
       
+      /* Performance indicator */
+      .perf-indicator {
+        position: fixed;
+        top: 10px;
+        right: 10px;
+        padding: 5px 10px;
+        background-color: rgba(0, 123, 255, 0.9);
+        color: white;
+        border-radius: 15px;
+        font-size: 11px;
+        font-weight: 600;
+        z-index: 1000;
+        display: none;
+      }
+      
       /* Modal Styles */
       .modal {
         display: none;
@@ -429,46 +444,11 @@
           font-size: 12px;
         }
       }
-      
-      /* Landscape mobile styles */
-      @media (max-height: 600px) and (orientation: landscape) {
-        .container {
-          padding: 10px;
-        }
-        
-        .stats {
-          margin: 10px 0;
-        }
-        
-        .stat-item {
-          padding: 8px;
-        }
-        
-        .stat-number {
-          font-size: 16px;
-        }
-        
-        #history {
-          max-height: 150px;
-        }
-        
-        .modal-content {
-          margin: 10% auto;
-          padding: 20px;
-        }
-      }
-      
-      /* Prevent zoom on input focus for iOS */
-      @media screen and (-webkit-min-device-pixel-ratio: 0) {
-        select:focus,
-        textarea:focus,
-        input:focus {
-          font-size: 16px;
-        }
-      }
     </style>
   </head>
   <body>
+    <div class="perf-indicator" id="perfIndicator">Saving...</div>
+    
     <div class="container">
       <h2>📱 NEMA QR Code Scanner</h2>
       
@@ -517,7 +497,7 @@
 
     <script>
       // ==========================================
-      // JSONP CONFIGURATION
+      // OPTIMIZED CONFIGURATION
       // ==========================================
       const CONFIG = {
         // Replace with your Google Apps Script Web App URL
@@ -525,16 +505,24 @@
       };
       
       // ==========================================
-      // JSONP HELPER FUNCTIONS
+      // OPTIMIZED JSONP HELPER FUNCTIONS
       // ==========================================
       
       function makeJSONPRequest(url, params = {}) {
         return new Promise((resolve, reject) => {
+          const startTime = performance.now(); // Track performance
+          
           // Create unique callback name
           const callbackName = 'jsonp_callback_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
           
           // Create global callback function
           window[callbackName] = function(data) {
+            const endTime = performance.now();
+            const duration = Math.round(endTime - startTime);
+            
+            // Show performance indicator
+            showPerformanceIndicator(`Saved in ${duration}ms`);
+            
             // Clean up
             delete window[callbackName];
             if (document.body.contains(script)) {
@@ -545,11 +533,11 @@
             resolve(data);
           };
           
-          // Build URL with parameters
+          // Build URL with parameters - OPTIMIZED: Minimal params only
           const urlParams = new URLSearchParams({
             callback: callbackName,
-            ...params,
-            _t: Date.now() // Cache buster
+            ...params
+            // Removed cache buster to reduce URL length
           });
           
           // Create script element
@@ -563,23 +551,45 @@
             if (document.body.contains(script)) {
               document.body.removeChild(script);
             }
-            reject(new Error('JSONP request failed - network error'));
+            reject(new Error('Network error'));
           };
           
           // Add to DOM to trigger request
           document.body.appendChild(script);
           
-          // Set timeout
+          // OPTIMIZED: Reduced timeout from 15s to 8s
           setTimeout(() => {
             if (window[callbackName]) {
               delete window[callbackName];
               if (document.body.contains(script)) {
                 document.body.removeChild(script);
               }
-              reject(new Error('JSONP request timeout'));
+              reject(new Error('Request timeout'));
             }
-          }, 15000); // 15 second timeout
+          }, 8000);
         });
+      }
+      
+      // ==========================================
+      // PERFORMANCE INDICATORS
+      // ==========================================
+      
+      function showPerformanceIndicator(message) {
+        const indicator = document.getElementById('perfIndicator');
+        indicator.textContent = message;
+        indicator.style.display = 'block';
+        indicator.style.backgroundColor = '#28a745';
+        
+        setTimeout(() => {
+          indicator.style.display = 'none';
+        }, 2000);
+      }
+      
+      function showSavingIndicator() {
+        const indicator = document.getElementById('perfIndicator');
+        indicator.textContent = 'Saving...';
+        indicator.style.display = 'block';
+        indicator.style.backgroundColor = '#007bff';
       }
       
       // ==========================================
@@ -613,10 +623,10 @@
             action: 'status'
           });
           
-          return data.success || data.status || true; // Return true if any success indicator
+          return data.success || data.status || true;
         } catch (error) {
           console.log('API connection test failed, but continuing anyway:', error.message);
-          return true; // Continue anyway - the actual save might still work
+          return true;
         }
       }
 
@@ -632,6 +642,7 @@
         statusElement.className = 'status info';
       }
 
+      // OPTIMIZED: Simplified save function with minimal data
       async function saveToSecureAPI(qrData, uniformCompliance) {
         console.log('Saving QR data via JSONP:', qrData, 'Uniform:', uniformCompliance);
         
@@ -640,7 +651,6 @@
           uniformCompliance: uniformCompliance ? 'Yes' : 'No'
         });
         
-        // More flexible success checking
         if (result.success === false) {
           throw new Error(result.error || 'Save failed');
         }
@@ -652,9 +662,9 @@
         const timestamp = new Date().toLocaleString();
         scanHistory.unshift({ text, timestamp, saved, error, uniformCompliance });
         
-        // Keep only last 20 scans
-        if (scanHistory.length > 20) {
-          scanHistory = scanHistory.slice(0, 20);
+        // Keep only last 15 scans (reduced from 20 for better performance)
+        if (scanHistory.length > 15) {
+          scanHistory = scanHistory.slice(0, 15);
         }
         
         updateHistoryDisplay();
@@ -740,8 +750,9 @@
       }
 
       async function proceedWithSave(qrData, uniformCompliance) {
-        // Show loading status
+        // Show loading status and performance indicator
         showLoading('Saving...');
+        showSavingIndicator();
         
         try {
           const result = await saveToSecureAPI(qrData, uniformCompliance);
@@ -757,159 +768,3 @@
           stats.successfulSaves++;
           updateStats();
           updateHistoryDisplay();
-          updateStatus('✅ Data saved successfully!', 'success');
-          
-        } catch (error) {
-          console.error('Failed to save:', error);
-          
-          // Update the latest history item
-          if (scanHistory.length > 0) {
-            scanHistory[0].saved = false;
-            scanHistory[0].error = error.message;
-          }
-          
-          stats.failedSaves++;
-          updateStats();
-          updateHistoryDisplay();
-          updateStatus(`❌ Failed to save: ${error.message}`, 'error');
-        }
-      }
-
-      async function onScanSuccess(decodedText, decodedResult) {
-        console.log('Scan successful:', decodedText);
-        document.getElementById("result").innerHTML = `<strong>Latest Scan:</strong><br><code>${decodedText}</code>`;
-        
-        // Vibrate on successful scan (if supported)
-        if (navigator.vibrate) {
-          navigator.vibrate(200);
-        }
-        
-        // Update stats
-        stats.totalScans++;
-        updateStats();
-        
-        // Add to history first (will show as processing)
-        addToHistory(decodedText, false, null, null);
-        
-        // Show start button for next scan
-        document.getElementById("stop-button").style.display = "none";
-        document.getElementById("start-button").style.display = "block";
-        
-        // Stop the scanner
-        stopScanner();
-        
-        // Show uniform compliance modal
-        showUniformModal(decodedText);
-      }
-
-      function onScanFailure(error) {
-        // Ignore scan failures - they happen frequently during scanning
-      }
-
-      function startScanner() {
-        if (isScanning) return;
-        
-        updateStatus('📷 Starting camera...', 'info');
-        html5QrCode = new Html5Qrcode("reader");
-        
-        Html5Qrcode.getCameras().then(devices => {
-          if (devices && devices.length) {
-            // Try to use back camera first (usually better for QR scanning)
-            let selectedCamera = devices[0];
-            for (let device of devices) {
-              if (device.label && device.label.toLowerCase().includes('back')) {
-                selectedCamera = device;
-                break;
-              }
-            }
-            
-            const config = {
-              fps: 10,
-              qrbox: { width: 200, height: 200 },
-              aspectRatio: 1.0,
-              supportedScanTypes: [Html5QrcodeScanType.SCAN_TYPE_CAMERA]
-            };
-            
-            html5QrCode.start(selectedCamera.id, config, onScanSuccess, onScanFailure)
-              .then(() => {
-                isScanning = true;
-                updateStatus('📷 Scanner Active - Point at QR code', 'success');
-                document.getElementById("stop-button").style.display = "block";
-                document.getElementById("start-button").style.display = "none";
-              })
-              .catch(err => {
-                console.error('Failed to start scanner:', err);
-                updateStatus('❌ Failed to start camera. Please allow camera access.', 'error');
-                document.getElementById("start-button").style.display = "block";
-              });
-          } else {
-            updateStatus('❌ No camera found on this device', 'error');
-            document.getElementById("start-button").style.display = "block";
-          }
-        }).catch(err => {
-          console.error('Camera error:', err);
-          updateStatus(`❌ Camera error: ${err.message || err}`, 'error');
-          document.getElementById("start-button").style.display = "block";
-        });
-      }
-
-      function stopScanner() {
-        if (html5QrCode && isScanning) {
-          html5QrCode.stop().then(() => {
-            isScanning = false;
-            document.getElementById("stop-button").style.display = "none";
-            document.getElementById("start-button").style.display = "block";
-            updateStatus('⏹️ Scanner stopped', 'info');
-          }).catch(err => {
-            console.error('Failed to stop scanner:', err);
-            isScanning = false;
-            document.getElementById("stop-button").style.display = "none";
-            document.getElementById("start-button").style.display = "block";
-          });
-        }
-      }
-
-      // Prevent accidental modal close
-      window.onclick = function(event) {
-        const modal = document.getElementById('uniformModal');
-        if (event.target === modal) {
-          updateStatus('👔 Please select Yes or No for uniform compliance', 'info');
-        }
-      }
-
-      // Handle orientation changes
-      window.addEventListener('orientationchange', function() {
-        setTimeout(() => {
-          if (isScanning && html5QrCode) {
-            // Restart scanner after orientation change
-            stopScanner();
-            setTimeout(startScanner, 500);
-          }
-        }, 100);
-      });
-
-      // Initialize the scanner when page loads
-      window.onload = async function() {
-        updateStats();
-        
-        // Check if we're in a secure context (required for camera access)
-        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-          updateStatus('❌ Camera access not available. Please use HTTPS.', 'error');
-          return;
-        }
-        
-        document.getElementById("start-button").style.display = "block";
-        
-        const apiConnected = await checkApiConnection();
-        updateStatus('✅ Ready to scan! Tap "Start Scanner" to begin.', 'success');
-      };
-
-      // Clean up when page unloads
-      window.onbeforeunload = function() {
-        if (html5QrCode && isScanning) {
-          html5QrCode.stop();
-        }
-      };
-    </script>
-  </body>
-</html>
