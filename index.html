@@ -768,3 +768,159 @@
           stats.successfulSaves++;
           updateStats();
           updateHistoryDisplay();
+          updateStatus('✅ Data saved successfully!', 'success');
+          
+        } catch (error) {
+          console.error('Failed to save:', error);
+          
+          // Update the latest history item
+          if (scanHistory.length > 0) {
+            scanHistory[0].saved = false;
+            scanHistory[0].error = error.message;
+          }
+          
+          stats.failedSaves++;
+          updateStats();
+          updateHistoryDisplay();
+          updateStatus(`❌ Failed to save: ${error.message}`, 'error');
+        }
+      }
+
+      async function onScanSuccess(decodedText, decodedResult) {
+        console.log('Scan successful:', decodedText);
+        document.getElementById("result").innerHTML = `<strong>Latest Scan:</strong><br><code>${decodedText}</code>`;
+        
+        // Vibrate on successful scan (if supported)
+        if (navigator.vibrate) {
+          navigator.vibrate(200);
+        }
+        
+        // Update stats
+        stats.totalScans++;
+        updateStats();
+        
+        // Add to history first (will show as processing)
+        addToHistory(decodedText, false, null, null);
+        
+        // Show start button for next scan
+        document.getElementById("stop-button").style.display = "none";
+        document.getElementById("start-button").style.display = "block";
+        
+        // Stop the scanner
+        stopScanner();
+        
+        // Show uniform compliance modal
+        showUniformModal(decodedText);
+      }
+
+      function onScanFailure(error) {
+        // Ignore scan failures - they happen frequently during scanning
+      }
+
+      function startScanner() {
+        if (isScanning) return;
+        
+        updateStatus('📷 Starting camera...', 'info');
+        html5QrCode = new Html5Qrcode("reader");
+        
+        Html5Qrcode.getCameras().then(devices => {
+          if (devices && devices.length) {
+            // Try to use back camera first (usually better for QR scanning)
+            let selectedCamera = devices[0];
+            for (let device of devices) {
+              if (device.label && device.label.toLowerCase().includes('back')) {
+                selectedCamera = device;
+                break;
+              }
+            }
+            
+            const config = {
+              fps: 10,
+              qrbox: { width: 200, height: 200 },
+              aspectRatio: 1.0,
+              supportedScanTypes: [Html5QrcodeScanType.SCAN_TYPE_CAMERA]
+            };
+            
+            html5QrCode.start(selectedCamera.id, config, onScanSuccess, onScanFailure)
+              .then(() => {
+                isScanning = true;
+                updateStatus('📷 Scanner Active - Point at QR code', 'success');
+                document.getElementById("stop-button").style.display = "block";
+                document.getElementById("start-button").style.display = "none";
+              })
+              .catch(err => {
+                console.error('Failed to start scanner:', err);
+                updateStatus('❌ Failed to start camera. Please allow camera access.', 'error');
+                document.getElementById("start-button").style.display = "block";
+              });
+          } else {
+            updateStatus('❌ No camera found on this device', 'error');
+            document.getElementById("start-button").style.display = "block";
+          }
+        }).catch(err => {
+          console.error('Camera error:', err);
+          updateStatus(`❌ Camera error: ${err.message || err}`, 'error');
+          document.getElementById("start-button").style.display = "block";
+        });
+      }
+
+      function stopScanner() {
+        if (html5QrCode && isScanning) {
+          html5QrCode.stop().then(() => {
+            isScanning = false;
+            document.getElementById("stop-button").style.display = "none";
+            document.getElementById("start-button").style.display = "block";
+            updateStatus('⏹️ Scanner stopped', 'info');
+          }).catch(err => {
+            console.error('Failed to stop scanner:', err);
+            isScanning = false;
+            document.getElementById("stop-button").style.display = "none";
+            document.getElementById("start-button").style.display = "block";
+          });
+        }
+      }
+
+      // Prevent accidental modal close
+      window.onclick = function(event) {
+        const modal = document.getElementById('uniformModal');
+        if (event.target === modal) {
+          updateStatus('👔 Please select Yes or No for uniform compliance', 'info');
+        }
+      }
+
+      // Handle orientation changes
+      window.addEventListener('orientationchange', function() {
+        setTimeout(() => {
+          if (isScanning && html5QrCode) {
+            // Restart scanner after orientation change
+            stopScanner();
+            setTimeout(startScanner, 500);
+          }
+        }, 100);
+      });
+
+      // Initialize the scanner when page loads
+      window.onload = async function() {
+        updateStats();
+        
+        // Check if we're in a secure context (required for camera access)
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+          updateStatus('❌ Camera access not available. Please use HTTPS.', 'error');
+          return;
+        }
+        
+        document.getElementById("start-button").style.display = "block";
+        
+        const apiConnected = await checkApiConnection();
+        updateStatus('✅ Ready to scan! Tap "Start Scanner" to begin.', 'success');
+      };
+
+      // Clean up when page unloads
+      window.onbeforeunload = function() {
+        if (html5QrCode && isScanning) {
+          html5QrCode.stop();
+        }
+      };
+    </script>
+  </body>
+</html>
